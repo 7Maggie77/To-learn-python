@@ -1,0 +1,23 @@
+#!/usr/bin/python
+#-*-coding:utf-8-*
+import math
+
+def quadratic(a,b,c):
+	if(delta>0):
+		x1 = (-b+math.sqrt(delta))/(2*a)
+		x2 = (-b-math.sqrt(delta))/(2*a)
+		print('x1=%f x2=%f' % (x1,x2))	
+	elif(delta==0):
+		x=-(b/2*a)
+		print('x1=x2=%f' % x)
+	else:
+		print('no!')
+	
+
+
+a=int(input('输入a参数：'))
+b=int(input('输入b参数：'))
+c=int(input('输入c参数：'))
+
+delta= b**2-4*a*c
+quadratic(a,b,c)
