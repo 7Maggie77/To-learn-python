@@ -1,74 +1,91 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 """
-Created on Tue Aug 14 09:07:05 2018
+Created on Tue Aug 14 16:32:44 2018
 
 @author: zero
 """
-'''filter求素数（埃氏筛法）
 
-def _odd_iter():
-    n = 1
-    while True:
-        n = n + 2
-        yield n
+'''返回函数
 
-def _not_divisible(n):
-    return lambda x: x % n > 0
+###自己写的
+#def createCounter():
+#    def f(i):
+#        def counter():
+#                return i
+#        return counter
+#    fs=[]
+#    for i in range(0,1000):
+#        fs.append(f(i))
+#    print(fs)
+#    return fs
 
-def primes():
-    yield 2
-    it = _odd_iter() # 初始序列
-    while True:
-        n = next(it) # 返回序列的第一个数
-        yield n
-        it = filter(_not_divisible(n), it) # 构造新序列
+#将a设为变量
+#def createCounter():
+#    a=[0]
+#    def counter():
+#        a[0]=a[0]+1
+#        return a[0]
+#    return counter
 
-# 打印1000以内的素数:
-for n in primes():
-    if n < 1000:
-        print(n)
-    else:
-        break
-'''
-
-'''求回数
-
-#def integer():
-#    n=1
-#    while True:
-#        n=n+1
-#        yield n
-
-#def pal(n):
-#   if (str(n)==str(n)[::-1]):
-#       return n
-
-def is_palindrome(n):
-        return str(n)==str(n)[::-1]
-
-       
- #测试:
-output = filter(is_palindrome, range(1, 1000))
-print('1~1000:', list(output))
-if list(filter(is_palindrome, range(1, 200))) == [1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 22, 33, 44, 55, 66, 77, 88, 99, 101, 111, 121, 131, 141, 151, 161, 171, 181, 191]:
-    print('测试成功!')
+#python3中
+def createCounter():
+    a=0
+    def counter():
+        nonlocal a  
+        a=a+1
+        return a
+    return counter
+# 测试:
+counterA = createCounter()
+print(counterA(), counterA(), counterA(), counterA(), counterA()) # 1 2 3 4 5
+counterB = createCounter()
+if [counterB(), counterB(), counterB(), counterB()] == [1, 2, 3, 4]:
+    print('测试通过!')
 else:
-    print('测试失败!')      
+    print('测试失败!')
+    
 '''
 
-#排序
-L = [('Alice', 75),('Bob', 75), ('Adam', 92), ('Bart', 66), ('Lisa', 88)]
 
-def by_name(t):
-    return t[0].lower()
+'''匿名函数
 
-def by_score(t):
-    return t[1]
+L=list(filter(lambda n:n%2==1,range(1,20)))
+print(L)
 
-L2 = sorted(L, key=by_name)
-L2 = sorted(L, key=by_score)
-print(L2)
-        
-        
-        
+'''
+
+
+'''装饰器
+请设计一个decorator，它可作用于任何函数上，并打印该函数的执行时间：
+
+'''
+
+import time,functools
+def metric(fn):
+    @functools.wraps(fn)
+    def wrapper(*args, **kw):
+        start = time.clock()
+        fn(args, kw)
+        stop = time.clock() - start
+        print('%s executed in %s ms' % (fn.name, stop))
+        return fn(*args, **kw)
+    return wrapper
+
+# 测试
+@metric
+def fast(x, y):
+    time.sleep(0.0012)
+    return x + y;
+
+@metric
+def slow(x, y, z):
+    time.sleep(0.1234)
+    return x * y * z;
+
+f = fast(11, 22)
+s = slow(11, 22, 33)
+if f != 33:
+    print('测试失败!')
+elif s != 7986:
+    print('测试失败!')

@@ -901,6 +901,366 @@ while True:
 
 
 
+这个是python的slice notation的特殊用法。
+a = [0,1,2,3,4,5,6,7,8,9]
+b = a[i:j] 表示复制a[i]到a[j-1]，以生成新的list对象
+b = a[1:3] 那么，b的内容是 [1,2]
+当i缺省时，默认为0，即 a[:3]相当于 a[0:3]
+当j缺省时，默认为len(alist), 即a[1:]相当于a[1:10]
+当i,j都缺省时，a[:]就相当于完整复制一份a了
+
+b = a[i:j:s]这种格式呢，i,j与上面的一样，但s表示步进，缺省为1.
+所以a[i:j:1]相当于a[i:j]
+当s<0时，i缺省时，默认为-1. j缺省时，默认为-len(a)-1
+所以a[::-1]相当于 a[-1:-len(a)-1:-1]，也就是从最后一个元素到第一个元素复制一遍。所以你看到一个倒序的东东。
+
+
+
+
+-------------------------------sorted
+排序也是在程序中经常用到的算法。无论使用冒泡排序还是快速排序，排序的核心是比较两个元素的大小。如果是数字，我们可以直接比较，但如果是字符串或者两个dict呢？直接比较数学上的大小是没有意义的，因此，比较的过程必须通过函数抽象出来。
+
+Python内置的sorted()函数就可以对list进行排序：
+>>> sorted([36, 5, -12, 9, -21])
+[-21, -12, 5, 9, 36]
+
+此外，sorted()函数也是一个高阶函数，它还可以接收一个key函数来实现自定义的排序，例如按绝对值大小排序：
+>>> sorted([36, 5, -12, 9, -21], key=abs)
+[5, 9, -12, -21, 36]
+
+key指定的函数将作用于list的每一个元素上，并根据key函数返回的结果进行排序。对比原始的list和经过key=abs处理过的list：
+list = [36, 5, -12, 9, -21]
+keys = [36, 5,  12, 9,  21]
+
+然后sorted()函数按照keys进行排序，并按照对应关系返回list相应的元素：
+keys排序结果 => [5, 9,  12,  21, 36]
+                |  |    |    |   |
+最终结果     => [5, 9, -12, -21, 36]
+
+对字符串排序，是按照ASCII的大小比较的，由于'Z' < 'a'，结果，大写字母Z会排在小写字母a的前面。
+现在，我们提出排序应该忽略大小写，按照字母序排序。要实现这个算法，不必对现有代码大加改动，只要我们能用一个key函数把字符串映射为忽略大小写排序即可。忽略大小写来比较两个字符串，实际上就是先把字符串都变成大写（或者都变成小写），再比较。
+
+这样，我们给sorted传入key函数，即可实现忽略大小写的排序：
+>>> sorted(['bob', 'about', 'Zoo', 'Credit'], key=str.lower)
+['about', 'bob', 'Credit', 'Zoo']
+
+要进行反向排序，不必改动key函数，可以传入第三个参数reverse=True：
+>>> sorted(['bob', 'about', 'Zoo', 'Credit'], key=str.lower, reverse=True)
+['Zoo', 'Credit', 'bob', 'about']
+
+
+
+
+----------------------------------------------------------------------------------------------------
+8.14 
+-------------------------------返回函数
+高阶函数除了可以接受函数作为参数外，还可以把函数作为结果值返回。
+
+我们来实现一个可变参数的求和。通常情况下，求和的函数是这样定义的：
+def calc_sum(*args):
+    ax = 0
+    for n in args:
+        ax = ax + n
+    return ax
+
+但是，如果不需要立刻求和，而是在后面的代码中，根据需要再计算怎么办？可以不返回求和的结果，而是返回求和的函数：
+def lazy_sum(*args):
+    def sum():
+        ax = 0
+        for n in args:
+            ax = ax + n
+        return ax
+    return sum
+
+当我们调用lazy_sum()时，返回的并不是求和结果，而是求和函数：
+>>> f = lazy_sum(1, 3, 5, 7, 9)
+>>> f
+<function lazy_sum.<locals>.sum at 0x101c6ed90>
+
+调用函数f时，才真正计算求和的结果：
+>>> f()
+25
+
+在这个例子中，我们在函数lazy_sum中又定义了函数sum，并且，内部函数sum可以引用外部函数lazy_sum的参数和局部变量，当lazy_sum返回函数sum时，相关参数和变量都保存在返回的函数中，这种称为“闭包（Closure）”的程序结构拥有极大的威力。
+
+请再注意一点，当我们调用lazy_sum()时，每次调用都会返回一个新的函数，即使传入相同的参数：
+>>> f1 = lazy_sum(1, 3, 5, 7, 9)
+>>> f2 = lazy_sum(1, 3, 5, 7, 9)
+>>> f1==f2
+False
+f1()和f2()的调用结果互不影响。
+
+注意到返回的函数在其定义内部引用了局部变量args，所以，当一个函数返回了一个函数后，其内部的局部变量还被新函数引用，所以，闭包用起来简单，实现起来可不容易。
+
+另一个需要注意的问题是，返回的函数并没有立刻执行，而是直到调用了f()才执行。我们来看一个例子：
+def count():
+    fs = []
+    for i in range(1, 4):
+        def f():
+             return i*i
+        fs.append(f)
+    return fs
+f1, f2, f3 = count()
+
+在上面的例子中，每次循环，都创建了一个新的函数，然后，把创建的3个函数都返回了。
+你可能认为调用f1()，f2()和f3()结果应该是1，4，9，但实际结果是：
+>>> f1()
+9
+>>> f2()
+9
+>>> f3()
+9
+全部都是9！原因就在于返回的函数引用了变量i，但它并非立刻执行。等到3个函数都返回时，它们所引用的变量i已经变成了3，因此最终结果为9。
+
+返回闭包时牢记一点：返回函数不要引用任何循环变量，或者后续会发生变化的变量。
+如果一定要引用循环变量怎么办？方法是再创建一个函数，用该函数的参数绑定循环变量当前的值，无论该循环变量后续如何更改，已绑定到函数参数的值不变：
+def count():
+    def f(j):
+        def g():
+            return j*j
+        return g
+    fs = []
+    for i in range(1, 4):
+        fs.append(f(i)) # f(i)立刻被执行，因此i的当前值被传入f()
+    return fs
+再看看结果：
+
+>>> f1, f2, f3 = count()
+>>> f1()
+1
+>>> f2()
+4
+>>> f3()
+9
+缺点是代码较长，可利用lambda函数缩短代码。
+
+https://www.cnblogs.com/JohnABC/p/4076855.html
+闭包是由函数及其相关的引用环境组合而成的实体(即：闭包=函数+引用环境)(想想Erlang的外层函数传入一个参数a, 内层函数依旧传入一个参数b, 内层函数使用a和b, 最后返回内层函数
+
+1，闭包中是不能修改外部作用域的局部变量的
+>>> def foo():  
+...     m = 0  
+...     def foo1():  
+...         m = 1  
+...         print m  
+...  
+...     print m  
+...     foo1()  
+...     print m  
+...  
+
+>>> foo()  
+0  
+1  
+0  
+从执行结果可以看出，虽然在闭包里面也定义了一个变量m，但是其不会改变外部函数中的局部变量m。
+
+2，以下这段代码是在python中使用闭包时一段经典的错误代码
+
+def foo():  
+    a = 1  
+    def bar():  
+        a = a + 1  
+        return a  
+    return bar  
+
+这段程序的本意是要通过在每次调用闭包函数时都对变量a进行递增的操作。但在实际使用时
+>>> c = foo()  
+>>> print c()  
+Traceback (most recent call last):  
+  File "<stdin>", line 1, in <module>  
+  File "<stdin>", line 4, in bar  
+UnboundLocalError: local variable 'a' referenced before assignment  
+
+这是因为在执行代码 c = foo()时，python会导入全部的闭包函数体bar()来分析其的局部变量，python规则指定所有在赋值语句左面的变量都是局部变量，则在闭包bar()中，变量a在赋值符号"="的左面，被python认为是bar()中的局部变量。再接下来执行print c()时，程序运行至a = a + 1时，因为先前已经把a归为bar()中的局部变量，所以python会在bar()中去找在赋值语句右面的a的值，结果找不到，就会报错。
+解决的方法很简单：
+def foo():  
+    a = [1]  
+    def bar():  
+        a[0] = a[0] + 1  
+        return a[0]  
+    return bar  
+只要将a设定为一个容器就可以了。这样使用起来多少有点不爽，
+所以在python3以后，在a = a + 1 之前，使用语句nonloacal a就可以了，该语句显式的指定a不是闭包的局部变量。
+
+3，还有一个容易产生错误的事例也经常被人在介绍python闭包时提起，我一直都没觉得这个错误和闭包有什么太大的关系，但是它倒是的确是在python函数式编程是容易犯的一个错误，我在这里也不妨介绍一下。先看下面这段代码
+for i in range(3):  
+    print i  
+在程序里面经常会出现这类的循环语句，Python的问题就在于，当循环结束以后，循环体中的临时变量i不会销毁，而是继续存在于执行环境中。还有一个python的现象是，python的函数只有在执行时，才会去找函数体里的变量的值。
+
+flist = []  
+for i in range(3):  
+    def foo(x): print x + i  
+    flist.append(foo)  
+for f in flist:  
+    f(2)  
+
+可能有些人认为这段代码的执行结果应该是2,3,4.但是实际的结果是4,4,4。这是因为当把函数加入flist列表里时，python还没有给i赋值，只有当执行时，再去找i的值是什么，这时在第一个for循环结束以后，i的值是2，所以以上代码的执行结果是4,4,4.
+
+解决方法也很简单，改写一下函数的定义就可以了。
+for i in range(3):  
+    def foo(x,y=i): print x + y  
+    flist.append(foo)
+
+用途1，当闭包执行完后，仍然能够保持住当前的运行环境。
+比如说，如果你希望函数的每次执行结果，都是基于这个函数上次的运行结果。我以一个类似棋盘游戏的例子来说明。假设棋盘大小为50*50，左上角为坐标系原点(0,0)，我需要一个函数，接收2个参数，分别为方向(direction)，步长(step)，该函数控制棋子的运动。棋子运动的新的坐标除了依赖于方向和步长以外，当然还要根据原来所处的坐标点，用闭包就可以保持住这个棋子原来所处的坐标。
+origin = [0, 0]  # 坐标系统原点  
+legal_x = [0, 50]  # x轴方向的合法坐标  
+legal_y = [0, 50]  # y轴方向的合法坐标  
+def create(pos=origin):  
+    def player(direction,step):  
+        # 这里应该首先判断参数direction,step的合法性，比如direction不能斜着走，step不能为负等  
+        # 然后还要对新生成的x，y坐标的合法性进行判断处理，这里主要是想介绍闭包，就不详细写了。  
+        new_x = pos[0] + direction[0]*step  
+        new_y = pos[1] + direction[1]*step  
+        pos[0] = new_x  
+        pos[1] = new_y  
+        #注意！此处不能写成 pos = [new_x, new_y]，原因在上文有说过  
+        return pos  
+    return player  
+ 
+player = create()  # 创建棋子player，起点为原点  
+print player([1,0],10)  # 向x轴正方向移动10步  
+print player([0,1],20)  # 向y轴正方向移动20步  
+print player([-1,0],10)  # 向x轴负方向移动10步  
+
+输出为
+[10, 0]  
+[10, 20]  
+[0, 20]  
+
+用途2，闭包可以根据外部作用域的局部变量来得到不同的结果，这有点像一种类似配置功能的作用，我们可以修改外部的变量，闭包根据这个变量展现出不同的功能。比如有时我们需要对某些文件的特殊行进行分析，先要提取出这些特殊行。
+
+def make_filter(keep):  
+    def the_filter(file_name):  
+        file = open(file_name)  
+        lines = file.readlines()  
+        file.close()  
+        filter_doc = [i for i in lines if keep in i]  
+        return filter_doc  
+    return the_filter  
+
+如果我们需要取得文件"result.txt"中含有"pass"关键字的行，则可以这样使用例子程序
+filter = make_filter("pass")  
+filter_result = filter("result.txt")  
+以上两种使用场景，用面向对象也是可以很简单的实现的，但是在用Python进行函数式编程时，闭包对数据的持久化以及按配置产生不同的功能，是很有帮助的。
+
+
+-------------------------------匿名函数
+当我们在传入函数时，有些时候，不需要显式地定义函数，直接传入匿名函数更方便。
+在Python中，对匿名函数提供了有限支持。还是以map()函数为例，计算f(x)=x2时，除了定义一个f(x)的函数外，还可以直接传入匿名函数：
+>>> list(map(lambda x: x * x, [1, 2, 3, 4, 5, 6, 7, 8, 9]))
+[1, 4, 9, 16, 25, 36, 49, 64, 81]
+
+通过对比可以看出，匿名函数lambda x: x * x实际上就是：
+def f(x):
+    return x * x
+
+关键字lambda表示匿名函数，冒号前面的x表示函数参数。
+
+匿名函数有个限制，就是只能有一个表达式，不用写return，返回值就是该表达式的结果。
+
+用匿名函数有个好处，因为函数没有名字，不必担心函数名冲突。此外，匿名函数也是一个函数对象，也可以把匿名函数赋值给一个变量，再利用变量来调用该函数：
+>>> f = lambda x: x * x
+>>> f
+<function <lambda> at 0x101c6ef28>
+>>> f(5)
+25
+
+同样，也可以把匿名函数作为返回值返回，比如：
+def build(x, y):
+    return lambda: x * x + y * y
+
+
+-------------------------------装饰器
+函数对象有一个__name__属性，可以拿到函数的名字：
+>>> now.__name__
+'now'
+
+现在，假设我们要增强now()函数的功能，比如，在函数调用前后自动打印日志，但又不希望修改now()函数的定义，这种在代码运行期间动态增加功能的方式，称之为“装饰器”（Decorator）。
+
+本质上，decorator就是一个返回函数的高阶函数。所以，我们要定义一个能打印日志的decorator，可以定义如下：
+def log(func):
+    def wrapper(*args, **kw):
+        print('call %s():' % func.__name__)
+        return func(*args, **kw)
+    return wrapper
+
+观察上面的log，因为它是一个decorator，所以接受一个函数作为参数，并返回一个函数。我们要借助Python的@语法，把decorator置于函数的定义处：
+@log
+def now():
+    print('2015-3-25')
+
+调用now()函数，不仅会运行now()函数本身，还会在运行now()函数前打印一行日志：
+>>> now()
+call now():
+2015-3-25
+
+把@log放到now()函数的定义处，相当于执行了语句：
+now = log(now)
+
+由于log()是一个decorator，返回一个函数，所以，原来的now()函数仍然存在，只是现在同名的now变量指向了新的函数，于是调用now()将执行新函数，即在log()函数中返回的wrapper()函数。
+
+wrapper()函数的参数定义是(*args, **kw)，因此，wrapper()函数可以接受任意参数的调用。在wrapper()函数内，首先打印日志，再紧接着调用原始函数。
+
+如果decorator本身需要传入参数，那就需要编写一个返回decorator的高阶函数，写出来会更复杂。比如，要自定义log的文本：
+def log(text):
+    def decorator(func):
+        def wrapper(*args, **kw):
+            print('%s %s():' % (text, func.__name__))
+            return func(*args, **kw)
+        return wrapper
+    return decorator
+
+这个3层嵌套的decorator用法如下：
+@log('execute')
+def now():
+    print('2015-3-25')
+
+执行结果如下：
+>>> now()
+execute now():
+2015-3-25
+
+和两层嵌套的decorator相比，3层嵌套的效果是这样的：
+>>> now = log('execute')(now)
+我们来剖析上面的语句，首先执行log('execute')，返回的是decorator函数，再调用返回的函数，参数是now函数，返回值最终是wrapper函数。
+以上两种decorator的定义都没有问题，但还差最后一步。因为我们讲了函数也是对象，它有__name__等属性，但你去看经过decorator装饰之后的函数，它们的__name__已经从原来的'now'变成了'wrapper'：
+>>> now.__name__
+'wrapper'
+
+因为返回的那个wrapper()函数名字就是'wrapper'，所以，需要把原始函数的__name__等属性复制到wrapper()函数中，否则，有些依赖函数签名的代码执行就会出错。
+
+不需要编写wrapper.__name__ = func.__name__这样的代码，Python内置的functools.wraps就是干这个事的，所以，一个完整的decorator的写法如下：
+import functools
+def log(func):
+    @functools.wraps(func)
+    def wrapper(*args, **kw):
+        print('call %s():' % func.__name__)
+        return func(*args, **kw)
+    return wrapper
+
+或者针对带参数的decorator：
+import functools
+def log(text):
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kw):
+            print('%s %s():' % (text, func.__name__))
+            return func(*args, **kw)
+        return wrapper
+    return decorator
+import functools是导入functools模块。模块的概念稍候讲解。现在，只需记住在定义wrapper()的前面加上@functools.wraps(func)即可。
+
+
+
+
+
+
+
+
+
+
 
 
 
