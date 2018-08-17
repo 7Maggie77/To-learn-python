@@ -2022,7 +2022,7 @@ class Student(object):
 
 
 ----------------------------------------------------------------------------------------------------
-8.15  面向对象高级编程
+8.16  面向对象高级编程
 -------------------------------使用__slots__
 给实例绑定一个方法：
 class Student(object):
@@ -2313,7 +2313,6 @@ class Student(object):
 
 此外，注意到任意调用如s.abc都会返回None，这是因为我们定义的__getattr__默认返回就是None。要让class只响应特定的几个属性，我们就要按照约定，抛出AttributeError的错误：
 class Student(object):
-
     def __getattr__(self, attr):
         if attr=='age':
             return lambda: 25
@@ -2384,3 +2383,560 @@ False
 False
 
 通过callable()函数，我们就可以判断一个对象是否是“可调用”对象。
+
+
+-------------------------------使用枚举类
+为枚举类型定义一个class类型，然后，每个常量都是class的一个唯一实例。Python提供了Enum类来实现这个功能：
+
+from enum import Enum
+Month = Enum('Month', ('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'))
+
+这样我们就获得了Month类型的枚举类，可以直接使用Month.Jan来引用一个常量，或者枚举它的所有成员：
+for name, member in Month.__members__.items():
+    print(name, '=>', member, ',', member.value)
+
+value属性则是自动赋给成员的int常量，默认从1开始计数。
+
+如果需要更精确地控制枚举类型，可以从Enum派生出自定义类：
+from enum import Enum, unique
+@unique
+class Weekday(Enum):
+    Sun = 0 # Sun的value被设定为0
+    Mon = 1
+    Tue = 2
+    Wed = 3
+    Thu = 4
+    Fri = 5
+    Sat = 6
+
+@unique装饰器可以帮助我们检查保证没有重复值。
+
+访问这些枚举类型可以有若干种方法：
+>>> day1 = Weekday.Mon
+>>> print(day1)
+Weekday.Mon
+>>> print(Weekday.Tue)
+Weekday.Tue
+>>> print(Weekday['Tue'])
+Weekday.Tue
+>>> print(Weekday.Tue.value)
+2
+>>> print(day1 == Weekday.Mon)
+True
+>>> print(day1 == Weekday.Tue)
+False
+>>> print(Weekday(1))
+Weekday.Mon
+>>> print(day1 == Weekday(1))
+True
+>>> Weekday(7)
+Traceback (most recent call last):
+  ...
+ValueError: 7 is not a valid Weekday
+>>> for name, member in Weekday.__members__.items():
+...     print(name, '=>', member)
+...
+Sun => Weekday.Sun
+Mon => Weekday.Mon
+Tue => Weekday.Tue
+Wed => Weekday.Wed
+Thu => Weekday.Thu
+Fri => Weekday.Fri
+Sat => Weekday.Sat
+可见，既可以用成员名称引用枚举常量，又可以直接根据value的值获得枚举常量。
+
+
+-------------------------------使用元类
+动态语言和静态语言最大的不同，就是函数和类的定义，不是编译时定义的，而是运行时动态创建的。
+
+type()函数可以查看一个类型或变量的类型，Hello是一个class，它的类型就是type，而h是一个实例，它的类型就是class Hello。
+
+type()函数既可以返回一个对象的类型，又可以创建出新的类型，比如，我们可以通过type()函数创建出Hello类，而无需通过class Hello(object)...的定义：
+>>> def fn(self, name='world'): # 先定义函数
+...     print('Hello, %s.' % name)
+...
+>>> Hello = type('Hello', (object,), dict(hello=fn)) # 创建Hello class
+>>> h = Hello()
+>>> h.hello()
+Hello, world.
+>>> print(type(Hello))
+<class 'type'>
+>>> print(type(h))
+<class '__main__.Hello'>
+
+要创建一个class对象，type()函数依次传入3个参数：
+class的名称；
+继承的父类集合，注意Python支持多重继承，如果只有一个父类，别忘了tuple的单元素写法；
+class的方法名称与函数绑定，这里我们把函数fn绑定到方法名hello上。
+
+通过type()函数创建的类和直接写class是完全一样的，因为Python解释器遇到class定义时，仅仅是扫描一下class定义的语法，然后调用type()函数创建出class。
+
+正常情况下，我们都用class Xxx...来定义类，但是，type()函数也允许我们动态创建出类来，也就是说，动态语言本身支持运行期动态创建类，这和静态语言有非常大的不同，要在静态语言运行期创建类，必须构造源代码字符串再调用编译器，或者借助一些工具生成字节码实现，本质上都是动态编译，会非常复杂。
+
+除了使用type()动态创建类以外，要控制类的创建行为，还可以使用metaclass。
+
+metaclass，直译为元类，简单的解释就是：
+当我们定义了类以后，就可以根据这个类创建出实例，所以：先定义类，然后创建实例。
+
+但是如果我们想创建出类呢？那就必须根据metaclass创建出类，所以：先定义metaclass，然后创建类。
+连接起来就是：先定义metaclass，就可以创建类，最后创建实例。
+
+所以，metaclass允许你创建类或者修改类。换句话说，你可以把类看成是metaclass创建出来的“实例”。
+
+https://blog.csdn.net/seinedeparis/article/details/79073415
+http://python.jobbole.com/88795/
+https://mp.weixin.qq.com/s?__biz=MzU0NzY0NzQyNw==&mid=2247484141&idx=1&sn=07eb6afb9b7fa13ed39b4969644861cf&chksm=fb4a7841cc3df15723e9fcbc9f30b518197ef049545ba0c847b6cb4871227778487ed6b532fa&token=1951277466&lang=zh_CN#rd
+马住回来看（真的吗）
+
+
+
+----------------------------------------------------------------------------------------------------
+8.17  错误、调试和测试
+有的错误是程序编写有问题造成的，比如本来应该输出整数结果输出了字符串，这种错误我们通常称之为bug，bug是必须修复的。
+有的错误是用户输入造成的，比如让用户输入email地址，结果得到一个空字符串，这种错误可以通过检查用户输入来做相应的处理。
+还有一类错误是完全无法在程序运行过程中预测的，比如写入文件的时候，磁盘满了，写不进去了，或者从网络抓取数据，网络突然断掉了。这类错误也称为异常，在程序中通常是必须处理的，否则，程序会因为各种问题终止并退出。
+此外，我们也需要跟踪程序的执行，查看变量的值是否正确，这个过程称为调试。Python的pdb可以让我们以单步方式执行代码。
+最后，编写测试也很重要。有了良好的测试，就可以在程序修改后反复运行，确保程序输出符合我们编写的测试。
+-------------------------------错误处理
+在程序运行的过程中，如果发生了错误，可以事先约定返回一个错误代码，这样，就可以知道是否有错，以及出错的原因。在操作系统提供的调用中，返回错误码非常常见。比如打开文件的函数open()，成功时返回文件描述符（就是一个整数），出错时返回-1。
+用错误码来表示是否出错十分不便，因为函数本身应该返回的正常结果和错误码混在一起，造成调用者必须用大量的代码来判断是否出错：
+def foo():
+    r = some_function()
+    if r==(-1):
+        return (-1)
+    # do something
+    return r
+
+def bar():
+    r = foo()
+    if r==(-1):
+        print('Error')
+    else:
+        pass
+
+一旦出错，还要一级一级上报，直到某个函数可以处理该错误（比如，给用户输出一个错误信息）。
+
+所以高级语言通常都内置了一套try...except...finally...的错误处理机制，Python也不例外。
+try:
+    print('try...')
+    r = 10 / 0
+    print('result:', r)
+except ZeroDivisionError as e:
+    print('except:', e)
+finally:
+    print('finally...')
+print('END')
+
+当我们认为某些代码可能会出错时，就可以用try来运行这段代码，如果执行出错，则后续代码不会继续执行，而是直接跳转至错误处理代码，即except语句块，执行完except后，如果有finally语句块，则执行finally语句块，至此，执行完毕。
+
+上面的代码在计算10 / 0时会产生一个除法运算错误：
+try...
+except: division by zero
+finally...
+END
+
+从输出可以看到，当错误发生时，后续语句print('result:', r)不会被执行，except由于捕获到ZeroDivisionError，因此被执行。最后，finally语句被执行。然后，程序继续按照流程往下走。
+
+如果把除数0改成2，则执行结果如下：
+try...
+result: 5
+finally...
+END
+
+由于没有错误发生，所以except语句块不会被执行，但是finally如果有，则一定会被执行（可以没有finally语句）。
+
+你还可以猜测，错误应该有很多种类，如果发生了不同类型的错误，应该由不同的except语句块处理。没错，可以有多个except来捕获不同类型的错误：
+try:
+    print('try...')
+    r = 10 / int('a')
+    print('result:', r)
+except ValueError as e:
+    print('ValueError:', e)
+except ZeroDivisionError as e:
+    print('ZeroDivisionError:', e)
+finally:
+    print('finally...')
+print('END')
+
+int()函数可能会抛出ValueError，所以我们用一个except捕获ValueError，用另一个except捕获ZeroDivisionError。
+
+此外，如果没有错误发生，可以在except语句块后面加一个else，当没有错误发生时，会自动执行else语句：
+try:
+    print('try...')
+    r = 10 / int('2')
+    print('result:', r)
+except ValueError as e:
+    print('ValueError:', e)
+except ZeroDivisionError as e:
+    print('ZeroDivisionError:', e)
+else:
+    print('no error!')
+finally:
+    print('finally...')
+print('END')
+
+Python的错误其实也是class，所有的错误类型都继承自BaseException，所以在使用except时需要注意的是，它不但捕获该类型的错误，还把其子类也“一网打尽”。比如：
+try:
+    foo()
+except ValueError as e:
+    print('ValueError')
+except UnicodeError as e:
+    print('UnicodeError')
+
+第二个except永远也捕获不到UnicodeError，因为UnicodeError是ValueError的子类，如果有，也被第一个except给捕获了。
+
+Python所有的错误都是从BaseException类派生的，常见的错误类型和继承关系看这里：
+https://docs.python.org/3/library/exceptions.html#exception-hierarchy
+
+使用try...except捕获错误还有一个巨大的好处，就是可以跨越多层调用，比如函数main()调用bar()，bar
+()调用foo()，结果bar()出错了，这时，只要main()捕获到了，就可以处理：
+def foo(s):
+    return 10 / int(s)
+
+def bar(s):
+    return foo(s) * 2
+
+def main():
+    try:
+        bar('0')
+    except Exception as e:
+        print('Error:', e)
+    finally:
+        print('finally...')
+
+也就是说，不需要在每个可能出错的地方去捕获错误，只要在合适的层次去捕获错误就可以了。这样一来，就大大减少了写try...except...finally的麻烦。
+
+出错的时候，一定要分析错误的调用栈信息，才能定位错误的位置。
+
+如果不捕获错误，自然可以让Python解释器来打印出错误堆栈，但程序也被结束了。既然我们能捕获错误，就可以把错误堆栈打印出来，然后分析错误原因，同时，让程序继续执行下去。
+
+Python内置的logging模块可以非常容易地记录错误信息：
+# err_logging.py
+
+import logging
+
+def foo(s):
+    return 10 / int(s)
+
+def bar(s):
+    return foo(s) * 2
+
+def main():
+    try:
+        bar('0')
+    except Exception as e:
+        logging.exception(e)
+
+main()
+print('END')
+
+同样是出错，但程序打印完错误信息后会继续执行，并正常退出：
+$ python3 err_logging.py
+ERROR:root:division by zero
+Traceback (most recent call last):
+  File "err_logging.py", line 13, in main
+    bar('0')
+  File "err_logging.py", line 9, in bar
+    return foo(s) * 2
+  File "err_logging.py", line 6, in foo
+    return 10 / int(s)
+ZeroDivisionError: division by zero
+END
+
+通过配置，logging还可以把错误记录到日志文件里，方便事后排查。
+
+
+-------------------------------调试
+第一种方法简单直接粗暴有效，就是用print()把可能有问题的变量打印出来看看，执行后在输出中查找打印的变量值。
+用print()最大的坏处是将来还得删掉它，想想程序里到处都是print()，运行结果也会包含很多垃圾信息。所以，我们又有第二种方法。
+
+凡是用print()来辅助查看的地方，都可以用断言（assert）来替代：
+def foo(s):
+    n = int(s)
+    assert n != 0, 'n is zero!'
+    return 10 / n
+
+def main():
+    foo('0')
+
+assert的意思是，表达式n != 0应该是True，否则，根据程序运行的逻辑，后面的代码肯定会出错。
+
+如果断言失败，assert语句本身就会抛出AssertionError：
+$ python err.py
+Traceback (most recent call last):
+  ...
+AssertionError: n is zero!
+
+程序中如果到处充斥着assert，和print()相比也好不到哪去。不过，启动Python解释器时可以用-O参数来关闭assert：
+$ python -O err.py
+Traceback (most recent call last):
+  ...
+ZeroDivisionError: division by zero
+
+关闭后，你可以把所有的assert语句当成pass来看。
+
+把print()替换为logging是第3种方式，和assert比，logging不会抛出错误，而且可以输出到文件：
+import logging
+
+s = '0'
+n = int(s)
+logging.info('n = %d' % n)
+print(10 / n)
+
+logging.info()就可以输出一段文本。运行，发现除了ZeroDivisionError，没有任何信息。怎么回事？
+
+别急，在import logging之后添加一行配置再试试：
+import logging
+logging.basicConfig(level=logging.INFO)
+
+看到输出了：
+$ python err.py
+INFO:root:n = 0
+Traceback (most recent call last):
+  File "err.py", line 8, in <module>
+    print(10 / n)
+ZeroDivisionError: division by zero
+
+这就是logging的好处，它允许你指定记录信息的级别，有debug，info，warning，error等几个级别，当我们指定level=INFO时，logging.debug就不起作用了。同理，指定level=WARNING后，debug和info就不起作用了。这样一来，你可以放心地输出不同级别的信息，也不用删除，最后统一控制输出哪个级别的信息。
+
+logging的另一个好处是通过简单的配置，一条语句可以同时输出到不同的地方，比如console和文件。
+
+第4种方式是启动Python的调试器pdb，让程序以单步方式运行，可以随时查看运行状态。我们先准备好程序：
+# err.py
+s = '0'
+n = int(s)
+print(10 / n)
+
+然后启动：
+$ python -m pdb err.py
+> /Users/michael/Github/learn-python3/samples/debug/err.py(2)<module>()
+-> s = '0'
+
+以参数-m pdb启动后，pdb定位到下一步要执行的代码-> s = '0'。输入命令l来查看代码：
+(Pdb) l
+  1     # err.py
+  2  -> s = '0'
+  3     n = int(s)
+  4     print(10 / n)
+
+输入命令n可以单步执行代码：
+(Pdb) n
+> /Users/michael/Github/learn-python3/samples/debug/err.py(3)<module>()
+-> n = int(s)
+(Pdb) n
+> /Users/michael/Github/learn-python3/samples/debug/err.py(4)<module>()
+-> print(10 / n)
+
+任何时候都可以输入命令p 变量名来查看变量：
+(Pdb) p s
+'0'
+(Pdb) p n
+0
+
+输入命令q结束调试，退出程序：
+(Pdb) q
+
+这种通过pdb在命令行调试的方法理论上是万能的，但实在是太麻烦了，如果有一千行代码，要运行到第999行得敲多少命令啊。
+
+这个方法也是用pdb，但是不需要单步执行，我们只需要import pdb，然后，在可能出错的地方放一个pdb.set_trace()，就可以设置一个断点：
+# err.py
+import pdb
+
+s = '0'
+n = int(s)
+pdb.set_trace() # 运行到这里会自动暂停
+print(10 / n)
+
+运行代码，程序会自动在pdb.set_trace()暂停并进入pdb调试环境，可以用命令p查看变量，或者用命令c继续运行：
+$ python err.py 
+> /Users/michael/Github/learn-python3/samples/debug/err.py(7)<module>()
+-> print(10 / n)
+(Pdb) p n
+0
+(Pdb) c
+Traceback (most recent call last):
+  File "err.py", line 7, in <module>
+    print(10 / n)
+ZeroDivisionError: division by zero
+
+这个方式比直接启动pdb单步调试效率要高很多，但也高不到哪去。
+
+如果要比较爽地设置断点、单步执行，就需要一个支持调试功能的IDE。
+
+
+-------------------------------单元测试
+单元测试是用来对一个模块、一个函数或者一个类来进行正确性检验的测试工作。
+
+如果单元测试通过，说明我们测试的这个函数能够正常工作。如果单元测试不通过，要么函数有bug，要么测试条件输入不正确，总之，需要修复使单元测试能够通过。
+
+单元测试通过后有什么意义呢？如果我们对abs()函数代码做了修改，只需要再跑一遍单元测试，如果通过，说明我们的修改不会对abs()函数原有的行为造成影响，如果测试不通过，说明我们的修改与原有行为不一致，要么修改代码，要么修改测试。
+
+这种以测试为驱动的开发模式最大的好处就是确保一个程序模块的行为符合我们设计的测试用例。在将来修改的时候，可以极大程度地保证该模块行为仍然是正确的。
+
+为了编写单元测试，我们需要引入Python自带的unittest模块，编写mydict_test.py如下：
+import unittest
+
+from mydict import Dict
+
+class TestDict(unittest.TestCase):
+
+    def test_init(self):
+        d = Dict(a=1, b='test')
+        self.assertEqual(d.a, 1)
+        self.assertEqual(d.b, 'test')
+        self.assertTrue(isinstance(d, dict))
+
+    def test_key(self):
+        d = Dict()
+        d['key'] = 'value'
+        self.assertEqual(d.key, 'value')
+
+    def test_attr(self):
+        d = Dict()
+        d.key = 'value'
+        self.assertTrue('key' in d)
+        self.assertEqual(d['key'], 'value')
+
+    def test_keyerror(self):
+        d = Dict()
+        with self.assertRaises(KeyError):
+            value = d['empty']
+
+    def test_attrerror(self):
+        d = Dict()
+        with self.assertRaises(AttributeError):
+            value = d.empty
+
+编写单元测试时，我们需要编写一个测试类，从unittest.TestCase继承。
+
+以test开头的方法就是测试方法，不以test开头的方法不被认为是测试方法，测试的时候不会被执行。
+
+对每一类测试都需要编写一个test_xxx()方法。由于unittest.TestCase提供了很多内置的条件判断，我们只需要调用这些方法就可以断言输出是否是我们所期望的。最常用的断言就是assertEqual()：
+
+self.assertEqual(abs(-1), 1) # 断言函数返回的结果与1相等
+另一种重要的断言就是期待抛出指定类型的Error，比如通过d['empty']访问不存在的key时，断言会抛出KeyError：
+with self.assertRaises(KeyError):
+    value = d['empty']
+
+而通过d.empty访问不存在的key时，我们期待抛出AttributeError：
+with self.assertRaises(AttributeError):
+    value = d.empty
+
+一旦编写好单元测试，我们就可以运行单元测试。最简单的运行方式是在mydict_test.py的最后加上两行代码：
+if __name__ == '__main__':
+    unittest.main()
+
+这样就可以把mydict_test.py当做正常的python脚本运行：
+$ python mydict_test.py
+
+另一种方法是在命令行通过参数-m unittest直接运行单元测试：
+$ python -m unittest mydict_test
+.....
+----------------------------------------------------------------------
+Ran 5 tests in 0.000s
+
+OK
+
+这是推荐的做法，因为这样可以一次批量运行很多单元测试，并且，有很多工具可以自动来运行这些单元测试。
+
+可以在单元测试中编写两个特殊的setUp()和tearDown()方法。这两个方法会分别在每调用一个测试方法的前后分别被执行。
+
+setUp()和tearDown()方法有什么用呢？设想你的测试需要启动一个数据库，这时，就可以在setUp()方法中连接数据库，在tearDown()方法中关闭数据库，这样，不必在每个测试方法中重复相同的代码：
+class TestDict(unittest.TestCase):
+
+    def setUp(self):
+        print('setUp...')
+
+    def tearDown(self):
+        print('tearDown...')
+
+
+-------------------------------文档测试
+当我们编写注释时，如果写上这样的注释：
+def abs(n):
+    '''
+    Function to get absolute value of number.
+
+    Example:
+
+    >>> abs(1)
+    1
+    >>> abs(-1)
+    1
+    >>> abs(0)
+    0
+    '''
+    return n if n >= 0 else (-n)
+
+无疑更明确地告诉函数的调用者该函数的期望输入和输出。
+
+并且，Python的内置的“文档测试”（文档测试）模块可以直接提取注释中的代码并执行测试。
+
+文档测试严格按照Python的交互式命令行的输入和输出来判断测试结果是否正确。只有测试异常的时候，用可以...表示中间一大段烦人的输出。
+
+当模块正常导入时，文档测试不会被执行。只有在命令行直接运行时，才执行文档测试。所以，不必担心文档测试会在非测试环境下执行。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
